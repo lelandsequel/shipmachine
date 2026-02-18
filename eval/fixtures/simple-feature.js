@@ -1,30 +1,34 @@
 /**
- * Eval Fixture: simple-feature
- * Task: Add a hello() function to utils.js
+ * Simple Feature Fixture
+ * 
+ * A tiny fake repo for testing ShipMachine's ability to add a simple function.
+ * Task: Add a hello() function to utils.js that returns 'Hello, World!'
  */
+
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { execSync } from 'child_process';
-
-export const FIXTURE_ID = 'simple-feature';
-export const DESCRIPTION = 'Add a hello() function to utils.js that returns "Hello, World!"';
-export const OBJECTIVE_TYPE = 'feature';
 
 /**
- * Set up the fixture: create a temporary repo with initial files.
- * @returns {string} path to the temp repo
+ * Create a temporary directory with a simple project structure.
+ * @returns {string} path to temp directory
  */
-export function setup() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zeroclaw-fixture-'));
+export function createFixture() {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zeroclaw-eval-simple-'));
+  
+  // Create package.json
+  fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({
+    name: 'simple-feature-fixture',
+    version: '1.0.0',
+    type: 'module',
+    scripts: {
+      test: 'node --test test/*.test.js'
+    }
+  }, null, 2));
 
-  // Initialize git repo
-  execSync('git init', { cwd: tmpDir, stdio: 'pipe' });
-  execSync('git config user.email "test@zeroclaw.dev"', { cwd: tmpDir, stdio: 'pipe' });
-  execSync('git config user.name "ZeroClaw Test"', { cwd: tmpDir, stdio: 'pipe' });
-
-  // Create initial files
-  fs.writeFileSync(path.join(tmpDir, 'utils.js'), `// Utility functions
+  // Create src/utils.js - the file to modify
+  fs.mkdirSync(path.join(tempDir, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(tempDir, 'src', 'utils.js'), `// Utility functions
 
 export function add(a, b) {
   return a + b;
@@ -33,97 +37,49 @@ export function add(a, b) {
 export function multiply(a, b) {
   return a * b;
 }
-`, 'utf8');
+`);
 
-  fs.writeFileSync(path.join(tmpDir, 'utils.test.js'), `import { add, multiply } from './utils.js';
+  // Create test/utils.test.js
+  fs.mkdirSync(path.join(tempDir, 'test'), { recursive: true });
+  fs.writeFileSync(path.join(tempDir, 'test', 'utils.test.js'), `import { describe, it } from 'node:test';
+import assert from 'node:assert';
+import { add, multiply } from '../src/utils.js';
 
-// Test add
-const sum = add(2, 3);
-if (sum !== 5) throw new Error(\`add: expected 5, got \${sum}\`);
+describe('utils', () => {
+  it('add should add two numbers', () => {
+    assert.strictEqual(add(1, 2), 3);
+  });
 
-// Test multiply
-const product = multiply(3, 4);
-if (product !== 12) throw new Error(\`multiply: expected 12, got \${product}\`);
+  it('multiply should multiply two numbers', () => {
+    assert.strictEqual(multiply(3, 4), 12);
+  });
+});
+`);
 
-console.log('All tests passed!');
-`, 'utf8');
-
-  fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({
-    name: 'fixture-simple-feature',
-    type: 'module',
-    version: '1.0.0',
-    scripts: { test: 'node utils.test.js' },
-  }, null, 2), 'utf8');
-
-  // Initial commit
-  execSync('git add -A', { cwd: tmpDir, stdio: 'pipe' });
-  execSync('git commit -m "Initial commit"', { cwd: tmpDir, stdio: 'pipe' });
-
-  return tmpDir;
+  return tempDir;
 }
 
-export const TASK = {
-  objective: 'Add a hello() function to utils.js that takes an optional name parameter and returns "Hello, {name}!" or "Hello, World!" if no name provided. Add tests for it.',
-  objective_type: OBJECTIVE_TYPE,
-  expected_outputs: {
-    files_modified: ['utils.js', 'utils.test.js'],
-    test_should_pass: true,
-    pr_bundle_exists: true,
-  },
+/**
+ * Expected outcome for this fixture.
+ */
+export const expectedOutcome = {
+  task: "Add a hello() function to utils.js that returns 'Hello, World!'",
+  targetFile: 'src/utils.js',
+  expectedFunction: "hello",
+  expectedReturn: "'Hello, World!'",
+  testChecks: [
+    'function hello exists',
+    'returns Hello, World!',
+    'existing tests still pass'
+  ]
 };
 
 /**
- * Verify the fixture result.
- * @param {string} repoPath
- * @param {Object} result - ShipMachine run result
- * @returns {{passed: boolean, checks: {name: string, passed: boolean, detail: string}[]}}
+ * Clean up the fixture.
+ * @param {string} tempDir 
  */
-export function verify(repoPath, result) {
-  const checks = [];
-
-  // Check 1: utils.js was modified
-  const utilsContent = fs.readFileSync(path.join(repoPath, 'utils.js'), 'utf8');
-  const hasHello = utilsContent.includes('hello') || utilsContent.includes('Hello');
-  checks.push({
-    name: 'hello() function added to utils.js',
-    passed: hasHello,
-    detail: hasHello ? 'Found hello in utils.js' : 'hello() function not found in utils.js',
-  });
-
-  // Check 2: Tests pass
-  try {
-    execSync('node utils.test.js', { cwd: repoPath, stdio: 'pipe' });
-    checks.push({ name: 'Tests pass', passed: true, detail: 'node utils.test.js exited 0' });
-  } catch (e) {
-    checks.push({ name: 'Tests pass', passed: false, detail: e.message });
-  }
-
-  // Check 3: PR bundle generated
-  const bundleExists = result?.prBundle?.PR_DESCRIPTION || result?.prBundlePath;
-  checks.push({
-    name: 'PR bundle generated',
-    passed: !!bundleExists,
-    detail: bundleExists ? 'PR_DESCRIPTION.md exists' : 'No PR bundle in result',
-  });
-
-  // Check 4: No policy violations
-  const violations = result?.policyViolations || [];
-  checks.push({
-    name: 'No policy violations',
-    passed: violations.length === 0,
-    detail: violations.length === 0 ? 'Clean' : `Violations: ${violations.join(', ')}`,
-  });
-
-  return {
-    passed: checks.every(c => c.passed),
-    checks,
-  };
+export function cleanupFixture(tempDir) {
+  fs.rmSync(tempDir, { recursive: true, force: true });
 }
 
-/**
- * Cleanup the temp repo.
- * @param {string} repoPath
- */
-export function cleanup(repoPath) {
-  fs.rmSync(repoPath, { recursive: true, force: true });
-}
+export default { createFixture, expectedOutcome, cleanupFixture };

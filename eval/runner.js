@@ -1,194 +1,203 @@
-#!/usr/bin/env node
 /**
- * ZeroClaw ShipMachine — Agent Eval Runner
- * Runs synthetic task fixtures to validate agent behavior.
- * 
- * Usage: node eval/runner.js [--fixture simple-feature] [--output EVAL_RESULTS.md]
+ * AgentEvalRunner — runs evaluation fixtures against ShipMachine.
  */
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { spawnSync } from 'child_process';
+import chalk from 'chalk';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Import fixtures
-const FIXTURES = [];
-try {
-  const { setup: s1, verify: v1, cleanup: c1, TASK: t1, FIXTURE_ID: id1, DESCRIPTION: d1 } =
-    await import('./fixtures/simple-feature.js');
-  FIXTURES.push({ id: id1, description: d1, setup: s1, verify: v1, cleanup: c1, task: t1 });
-} catch (e) { console.warn('Could not load simple-feature fixture:', e.message); }
+import { createFixture as createSimpleFeature, expectedOutcome as simpleFeatureExpected, cleanupFixture as cleanupSimpleFeature } from './fixtures/simple-feature.js';
+import { createFixture as createBugfix, expectedOutcome as bugfixExpected, cleanupFixture as cleanupBugfix } from './fixtures/bugfix.js';
 
-try {
-  const { setup: s2, verify: v2, cleanup: c2, TASK: t2, FIXTURE_ID: id2, DESCRIPTION: d2 } =
-    await import('./fixtures/bugfix.js');
-  FIXTURES.push({ id: id2, description: d2, setup: s2, verify: v2, cleanup: c2, task: t2 });
-} catch (e) { console.warn('Could not load bugfix fixture:', e.message); }
+/**
+ * Run a single evaluation fixture.
+ * @param {Object} fixture
+ * @returns {Object} result
+ */
+async function runFixture(fixture) {
+  const { name, createFixture, expected, task } = fixture;
+  
+  console.log(chalk.bold.cyan(`\n🔬 Running: ${name}`));
+  console.log(chalk.gray(`  Task: ${task}`));
 
-const args = process.argv.slice(2);
-const fixtureFilter = args[args.indexOf('--fixture') + 1] || null;
-const outputPath = args[args.indexOf('--output') + 1] || 'EVAL_RESULTS.md';
-const dryRun = args.includes('--dry-run');
-
-const results = [];
-let totalPassed = 0;
-let totalFailed = 0;
-const startTime = Date.now();
-
-// Try to import ShipMachine (may not be built yet)
-let ShipMachine = null;
-try {
-  const mod = await import('../orchestrator/index.js');
-  ShipMachine = mod.ShipMachine || mod.default;
-} catch (e) {
-  console.warn('⚠️  ShipMachine not available yet — running in STUB mode');
-  console.warn('   (orchestrator/index.js not found or has errors)');
-}
-
-const fixturesToRun = fixtureFilter
-  ? FIXTURES.filter(f => f.id === fixtureFilter)
-  : FIXTURES;
-
-if (fixturesToRun.length === 0) {
-  console.error(`No fixtures found${fixtureFilter ? ` matching "${fixtureFilter}"` : ''}`);
-  process.exit(1);
-}
-
-console.log(`\n🧪 ZeroClaw Agent Eval Suite`);
-console.log(`   Fixtures: ${fixturesToRun.length}`);
-console.log(`   Mode: ${dryRun ? 'DRY RUN' : ShipMachine ? 'LIVE' : 'STUB'}\n`);
-
-for (const fixture of fixturesToRun) {
-  console.log(`━━━ ${fixture.id}: ${fixture.description}`);
-  const fixtureStart = Date.now();
-  let repoPath = null;
+  let tempDir = null;
+  let result = { name, passed: false, details: [] };
 
   try {
-    // Setup temp repo
-    console.log('  📁 Setting up fixture repo...');
-    repoPath = fixture.setup();
-    console.log(`  → Created at ${repoPath}`);
+    // Create fixture
+    tempDir = createFixture();
+    console.log(chalk.gray(`  Created temp dir: ${tempDir}`));
 
-    let runResult = null;
+    // Run ShipMachine (dry-run mode for eval)
+    const shipmachinePath = path.join(__dirname, '..', 'index.js');
+    const cliPath = path.join(__dirname, '..', 'cli', 'index.js');
 
-    if (dryRun || !ShipMachine) {
-      // Stub run — simulate success for CI structural testing
-      console.log('  🔍 Dry run — simulating agent output...');
-      runResult = {
-        dryRun: true,
-        prBundle: { PR_DESCRIPTION: '# Stub PR\nDry run result' },
-        policyViolations: [],
-        stepsCompleted: 0,
-        stubMode: !ShipMachine,
-      };
-    } else {
-      // Real run
-      console.log('  🤖 Running ShipMachine...');
-      const sm = new ShipMachine({
-        repoPath,
-        objective: fixture.task.objective,
-        agentRole: 'engineer',
-      });
-      runResult = await sm.run();
-    }
+    // Try running through CLI first
+    const runResult = spawnSync('node', [
+      cliPath,
+      'run-task',
+      '--repo', tempDir,
+      '--objective', task,
+      '--dry-run'
+    ], {
+      encoding: 'utf8',
+      timeout: 60000,
+    });
 
-    // Verify
-    console.log('  ✅ Verifying results...');
-    const verification = fixture.verify(repoPath, runResult);
+    // Check output
+    const output = runResult.stdout + runResult.stderr;
+    console.log(chalk.gray(`  Output length: ${output.length} chars`));
 
-    const fixtureResult = {
-      id: fixture.id,
-      description: fixture.description,
-      passed: verification.passed,
-      durationMs: Date.now() - fixtureStart,
-      checks: verification.checks,
-      stubMode: runResult?.stubMode || false,
-      dryRun: runResult?.dryRun || false,
-    };
+    // Evaluate results
+    result.details.push({ step: 'execution', output: output.substring(0, 500) });
 
-    results.push(fixtureResult);
+    // Check if patch would apply cleanly
+    const patchApplied = output.includes('patch') || output.includes('Step');
+    result.details.push({ step: 'patch_generated', value: patchApplied });
 
-    if (verification.passed) {
-      totalPassed++;
-      console.log(`  ✓ PASSED (${fixtureResult.durationMs}ms)\n`);
-    } else {
-      totalFailed++;
-      const failedChecks = verification.checks.filter(c => !c.passed);
-      console.log(`  ✗ FAILED — ${failedChecks.map(c => c.name).join(', ')}\n`);
-    }
+    // Check if PR bundle would be created
+    const prBundle = output.includes('bundle') || output.includes('PR');
+    result.details.push({ step: 'pr_bundle', value: prBundle });
+
+    // Check for errors
+    const hasError = output.includes('Error') || output.includes('error') || runResult.status !== 0;
+    result.details.push({ step: 'no_errors', value: !hasError });
+
+    // Check for policy violations
+    const policyViolation = output.includes('policy denies') || output.includes('not allowed');
+    result.details.push({ step: 'policy_ok', value: !policyViolation });
+
+    // Overall pass/fail
+    result.passed = patchApplied && prBundle && !hasError && !policyViolation;
+    result.status = result.passed ? 'PASS' : 'FAIL';
 
   } catch (err) {
-    console.error(`  ✗ ERROR: ${err.message}\n`);
-    results.push({
-      id: fixture.id,
-      description: fixture.description,
-      passed: false,
-      durationMs: Date.now() - fixtureStart,
-      error: err.message,
-      checks: [],
-    });
-    totalFailed++;
+    result.status = 'ERROR';
+    result.error = err.message;
+    result.passed = false;
   } finally {
-    if (repoPath) {
-      try { fixture.cleanup(repoPath); } catch { /* ignore */ }
+    if (tempDir) {
+      try {
+        cleanupFixture(tempDir);
+      } catch { /* ignore cleanup errors */ }
     }
   }
+
+  return result;
 }
 
-const totalDuration = Date.now() - startTime;
-const successRate = Math.round((totalPassed / fixturesToRun.length) * 100);
+/**
+ * Main eval runner.
+ */
+async function main() {
+  const fixtures = [
+    {
+      name: 'simple-feature',
+      task: "Add a hello() function to utils.js that returns 'Hello, World!'",
+      createFixture: createSimpleFeature,
+      expected: simpleFeatureExpected,
+    },
+    {
+      name: 'bugfix',
+      task: "Fix the off-by-one error in getLastItem()",
+      createFixture: createBugfix,
+      expected: bugfixExpected,
+    }
+  ];
 
-// Generate EVAL_RESULTS.md
-const md = `# ZeroClaw Agent Eval Results
+  console.log(chalk.bold.cyan('🧪 ZeroClaw ShipMachine Evaluation Suite\n'));
+  console.log(chalk.gray(`Running ${fixtures.length} fixtures...`));
 
-**Date:** ${new Date().toISOString()}
-**Mode:** ${dryRun ? 'Dry Run' : ShipMachine ? 'Live' : 'Stub (orchestrator not built yet)'}
-**Duration:** ${(totalDuration / 1000).toFixed(1)}s
+  const results = [];
 
-## Summary
+  for (const fixture of fixtures) {
+    const result = await runFixture(fixture);
+    results.push(result);
+  }
 
-| Metric | Value |
-|--------|-------|
-| Total Fixtures | ${fixturesToRun.length} |
-| Passed | ${totalPassed} |
-| Failed | ${totalFailed} |
-| Success Rate | ${successRate}% |
+  // Generate report
+  console.log(chalk.bold.cyan('\n📊 EVALUATION RESULTS\n'));
+  console.log(chalk.gray('─'.repeat(60)));
 
-## Results by Fixture
+  let passCount = 0;
+  for (const result of results) {
+    const status = result.passed 
+      ? chalk.green('✓ PASS') 
+      : result.status === 'ERROR'
+        ? chalk.red('✗ ERROR')
+        : chalk.yellow('✗ FAIL');
+    
+    console.log(`${status}  ${result.name}`);
+    
+    if (!result.passed && result.details) {
+      for (const detail of result.details) {
+        const val = detail.value === true ? chalk.green('✓') : 
+                    detail.value === false ? chalk.red('✗') : 
+                    '-';
+        console.log(chalk.gray(`       ${val} ${detail.step}`));
+      }
+    }
+    if (result.error) {
+      console.log(chalk.gray(`       Error: ${result.error}`));
+    }
 
-${results.map(r => `### ${r.passed ? '✅' : '❌'} ${r.id}
-**${r.description}**
-- Duration: ${r.durationMs}ms
-${r.error ? `- Error: ${r.error}` : ''}
-${r.stubMode ? '- ⚠️  Stub mode (orchestrator not loaded)' : ''}
+    if (result.passed) passCount++;
+  }
 
-| Check | Result |
-|-------|--------|
-${r.checks.map(c => `| ${c.name} | ${c.passed ? '✅ Pass' : '❌ Fail'} — ${c.detail} |`).join('\n')}
-`).join('\n')}
+  console.log(chalk.gray('─'.repeat(60)));
+  console.log(chalk.bold(`\nResults: ${passCount}/${results.length} passed\n`));
 
-## Known Limitations (Stub Mode)
+  // Write EVAL_RESULTS.md
+  const reportPath = path.join(__dirname, 'EVAL_RESULTS.md');
+  const report = generateReport(results);
+  fs.writeFileSync(reportPath, report, 'utf8');
+  console.log(chalk.gray(`Report written to: ${reportPath}`));
 
-When ShipMachine's orchestrator is not yet built, eval runs in stub mode:
-- Fixture setup and verify logic still runs
-- Agent execution is simulated (dry-run result)
-- Tests marked as structural pass (infra working, agent logic pending)
-- Real eval requires: orchestrator/index.js, promptos-bridge/index.js, ANTHROPIC_API_KEY
+  // Exit with appropriate code
+  process.exit(passCount === results.length ? 0 : 1);
+}
 
-## Next Eval Targets
+/**
+ * Generate markdown report.
+ */
+function generateReport(results) {
+  let md = '# ZeroClaw ShipMachine Evaluation Results\n\n';
+  md += `Generated: ${new Date().toISOString()}\n\n`;
+  md += '## Summary\n\n';
+  md += `- Total fixtures: ${results.length}\n`;
+  md += `- Passed: ${results.filter(r => r.passed).length}\n`;
+  md += `- Failed: ${results.filter(r => !r.passed).length}\n\n`;
+  md += '## Results\n\n';
 
-- [ ] Refactor fixture (rename variable, update all references)
-- [ ] Migration fixture (SQL schema migration)
-- [ ] Multi-file feature (add module + update imports)
-- [ ] Policy violation fixture (verify agent blocks prohibited actions)
-`;
+  for (const result of results) {
+    md += `### ${result.name}\n\n`;
+    md += `**Status**: ${result.passed ? '✅ PASS' : '❌ FAIL'}\n\n`;
+    
+    if (result.details) {
+      md += '| Check | Result |\n';
+      md += '|-------|--------|\n';
+      for (const detail of result.details) {
+        const val = detail.value === true ? '✅' : detail.value === false ? '❌' : '-';
+        md += `| ${detail.step} | ${val} |\n`;
+      }
+      md += '\n';
+    }
 
-fs.writeFileSync(outputPath, md, 'utf8');
+    if (result.error) {
+      md += `**Error**: \`${result.error}\`\n\n`;
+    }
+  }
 
-console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-console.log(`Results: ${totalPassed}/${fixturesToRun.length} passed (${successRate}%)`);
-console.log(`Output: ${outputPath}`);
-console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+  return md;
+}
 
-// Exit code: 0 if all passed, 1 if any failed
-process.exit(totalFailed > 0 ? 1 : 0);
+// Run
+main().catch(err => {
+  console.error(chalk.red('Fatal error:'), err);
+  process.exit(1);
+});

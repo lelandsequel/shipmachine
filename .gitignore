@@ -3,7 +3,6 @@ node_modules/
 *.log
 pr-bundles/
 workspace-checkouts/
-analytics/
 .DS_Store
 coverage/
 dist/

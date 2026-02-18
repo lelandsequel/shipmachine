@@ -1,0 +1,37 @@
+name: Agent Eval
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --ignore-scripts || npm install
+      
+      - name: Run evaluation suite
+        run: node eval/runner.js
+      
+      - name: Upload evaluation results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: eval/EVAL_RESULTS.md
+      
+      - name: Show results
+        run: cat eval/EVAL_RESULTS.md
