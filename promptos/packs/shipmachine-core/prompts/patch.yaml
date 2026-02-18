@@ -1,0 +1,122 @@
+id: ship.patch
+name: Code Patch
+description: Generate precise file edits for a given implementation step.
+version: "1.0.0"
+category: execution
+
+inputs:
+  - name: step_description
+    type: string
+    required: true
+    description: The specific step to implement (from the plan)
+  - name: file_path
+    type: string
+    required: true
+    description: Path to the file to modify
+  - name: current_content
+    type: string
+    required: true
+    description: Current contents of the file to modify
+  - name: context
+    type: string
+    required: false
+    description: Additional context (related files, dependencies, existing patterns)
+
+outputs:
+  schema:
+    type: object
+    required: [file_path, edits, summary]
+    properties:
+      file_path:
+        type: string
+        description: The file to edit (must match input file_path)
+      edits:
+        type: array
+        items:
+          type: object
+          properties:
+            line_start:
+              type: number
+            line_end:
+              type: number
+            new_content:
+              type: string
+            reason:
+              type: string
+        description: List of line-range edits to apply
+      summary:
+        type: string
+        description: One-sentence summary of what was changed and why
+
+prompt: |
+  You are a code editing agent. Produce precise, minimal edits to implement the given step.
+
+  ## Step to Implement
+  {{step_description}}
+
+  ## File Path
+  {{file_path}}
+
+  ## Current File Content
+  ```
+  {{current_content}}
+  ```
+
+  ## Additional Context
+  {{context}}
+
+  Generate the minimal edits needed to implement this step. Rules:
+  - Make the SMALLEST possible change that achieves the goal
+  - Preserve existing code style, indentation, and conventions
+  - Each edit specifies a line range (line_start to line_end, 1-indexed) and the new content
+  - For insertions, line_start = line_end = the line BEFORE where you insert
+  - For deletions, provide new_content as an empty string
+  - For replacements, provide the full new content for those lines
+  - Do not modify lines that don't need to change
+  - New content must be complete and syntactically valid
+
+  Respond with a JSON object matching this schema:
+  {
+    "file_path": "string",
+    "edits": [
+      {
+        "line_start": 5,
+        "line_end": 7,
+        "new_content": "the new lines\nto replace\nlines 5-7",
+        "reason": "why this change is needed"
+      }
+    ],
+    "summary": "Added input validation using Zod schema to the createUser function"
+  }
+
+examples:
+  - inputs:
+      step_description: "Add rate limit check at the top of the processRequest function"
+      file_path: "src/api/handler.js"
+      current_content: |
+        import { db } from './db.js';
+
+        export async function processRequest(req, res) {
+          const user = await db.findUser(req.userId);
+          res.json({ user });
+        }
+      context: "Rate limiter is available as import { rateLimiter } from './rate-limiter.js'"
+    expected_output:
+      file_path: "src/api/handler.js"
+      edits:
+        - line_start: 1
+          line_end: 1
+          new_content: "import { db } from './db.js';\nimport { rateLimiter } from './rate-limiter.js';"
+          reason: "Add rate limiter import"
+        - line_start: 4
+          line_end: 4
+          new_content: |
+            export async function processRequest(req, res) {
+              if (!rateLimiter.check(req.userId)) {
+                return res.status(429).json({ error: 'Rate limit exceeded' });
+              }
+              const user = await db.findUser(req.userId);
+              res.json({ user });
+            }
+          reason: "Add rate limit check before processing"
+      summary: "Added rate limit guard at start of processRequest, returning 429 if limit exceeded"

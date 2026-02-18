@@ -1,0 +1,149 @@
+id: ship.tests
+name: Generate Tests
+description: Generate or update tests to cover new/changed code.
+version: "1.0.0"
+category: execution
+
+inputs:
+  - name: file_path
+    type: string
+    required: true
+    description: Path to the file being tested
+  - name: code_content
+    type: string
+    required: true
+    description: The code to write tests for
+  - name: test_framework
+    type: string
+    required: true
+    description: Testing framework (jest, pytest, cargo, go, mocha, vitest, etc.)
+  - name: existing_tests
+    type: string
+    required: false
+    description: Existing test file contents (to avoid duplication and follow patterns)
+
+outputs:
+  schema:
+    type: object
+    required: [test_file_path, test_content, test_cases, coverage_targets]
+    properties:
+      test_file_path:
+        type: string
+        description: Path to the test file (new or existing)
+      test_content:
+        type: string
+        description: Complete test file content
+      test_cases:
+        type: array
+        items:
+          type: string
+        description: Names/descriptions of all test cases
+      coverage_targets:
+        type: array
+        items:
+          type: string
+        description: Functions/paths that these tests cover
+
+prompt: |
+  You are a test generation agent. Write thorough tests for the given code.
+
+  ## File Being Tested
+  {{file_path}}
+
+  ## Code to Test
+  ```
+  {{code_content}}
+  ```
+
+  ## Test Framework
+  {{test_framework}}
+
+  ## Existing Tests (to follow patterns and avoid duplication)
+  ```
+  {{existing_tests}}
+  ```
+
+  Generate tests following these principles:
+  1. **Cover the happy path** — test normal, expected behavior
+  2. **Cover edge cases** — null inputs, empty arrays, boundary values
+  3. **Cover error paths** — what happens when things fail
+  4. **Test behavior, not implementation** — don't test internals
+  5. **Each test has a single assertion focus** — clear and targeted
+  6. **Use descriptive test names** — "should return 404 when user not found"
+
+  Framework-specific rules:
+  - Jest/Vitest: use describe/it blocks, import from the file
+  - Pytest: use classes or functions prefixed with test_
+  - Go: use testing.T, naming func TestXxx(t *testing.T)
+  - Cargo: use #[test] attribute, mod tests {} block
+
+  Respond with a JSON object matching this schema:
+  {
+    "test_file_path": "string",
+    "test_content": "string (complete test file)",
+    "test_cases": ["description of each test case"],
+    "coverage_targets": ["function or code path being covered"]
+  }
+
+examples:
+  - inputs:
+      file_path: "src/utils/validate.js"
+      code_content: |
+        export function validateEmail(email) {
+          if (!email || typeof email !== 'string') return false;
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+      test_framework: "jest"
+      existing_tests: ""
+    expected_output:
+      test_file_path: "src/utils/__tests__/validate.test.js"
+      test_content: |
+        import { describe, it, expect } from '@jest/globals';
+        import { validateEmail } from '../validate.js';
+
+        describe('validateEmail', () => {
+          describe('valid emails', () => {
+            it('should accept a standard email address', () => {
+              expect(validateEmail('user@example.com')).toBe(true);
+            });
+
+            it('should accept email with subdomains', () => {
+              expect(validateEmail('user@mail.example.com')).toBe(true);
+            });
+          });
+
+          describe('invalid emails', () => {
+            it('should reject email missing @', () => {
+              expect(validateEmail('userexample.com')).toBe(false);
+            });
+
+            it('should reject email missing domain', () => {
+              expect(validateEmail('user@')).toBe(false);
+            });
+
+            it('should reject null input', () => {
+              expect(validateEmail(null)).toBe(false);
+            });
+
+            it('should reject non-string input', () => {
+              expect(validateEmail(42)).toBe(false);
+            });
+
+            it('should reject empty string', () => {
+              expect(validateEmail('')).toBe(false);
+            });
+          });
+        });
+      test_cases:
+        - "should accept a standard email address"
+        - "should accept email with subdomains"
+        - "should reject email missing @"
+        - "should reject email missing domain"
+        - "should reject null input"
+        - "should reject non-string input"
+        - "should reject empty string"
+      coverage_targets:
+        - "validateEmail - happy path"
+        - "validateEmail - null/undefined input"
+        - "validateEmail - non-string input"
+        - "validateEmail - malformed email"

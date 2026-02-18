@@ -1,0 +1,107 @@
+id: ship.doc_update
+name: Documentation Update
+description: Update documentation and generate a changelog entry for the changes made.
+version: "1.0.0"
+category: review
+
+inputs:
+  - name: changed_files
+    type: string
+    required: true
+    description: JSON array of files that were modified
+  - name: changes_summary
+    type: string
+    required: true
+    description: Plain-text summary of what was changed and why
+  - name: existing_docs
+    type: string
+    required: false
+    description: Contents of relevant existing documentation files (README, CHANGELOG, etc.)
+
+outputs:
+  schema:
+    type: object
+    required: [updates, changelog_entry]
+    properties:
+      updates:
+        type: array
+        items:
+          type: object
+          properties:
+            file:
+              type: string
+            section:
+              type: string
+            new_content:
+              type: string
+        description: Documentation updates to apply
+      changelog_entry:
+        type: string
+        description: Markdown changelog entry in Keep a Changelog format
+
+prompt: |
+  You are a documentation agent. Update documentation to reflect code changes.
+
+  ## Changed Files
+  {{changed_files}}
+
+  ## Changes Summary
+  {{changes_summary}}
+
+  ## Existing Documentation
+  ```
+  {{existing_docs}}
+  ```
+
+  Produce documentation updates following these rules:
+  1. **Only update docs that are actually affected** — don't touch unrelated sections
+  2. **Changelog format** — use Keep a Changelog format (### Added / Changed / Fixed / Removed)
+  3. **README updates** — only if public API, CLI usage, or setup changed
+  4. **Code comments** — if the change is complex enough to warrant inline documentation
+  5. **Be concise** — docs should explain WHY, not just WHAT (the code shows what)
+
+  Changelog entry rules:
+  - Start with `## [Unreleased]`
+  - Use present tense ("Add", "Fix", "Change")
+  - Link to relevant issue/PR if mentioned in context
+  - Group by Added/Changed/Fixed/Removed/Deprecated/Security
+
+  Respond with a JSON object matching this schema:
+  {
+    "updates": [
+      {
+        "file": "README.md",
+        "section": "API Reference",
+        "new_content": "complete updated section content"
+      }
+    ],
+    "changelog_entry": "## [Unreleased]\n\n### Added\n- ..."
+  }
+
+examples:
+  - inputs:
+      changed_files: '["src/api/users.js", "src/validators/user.js"]'
+      changes_summary: "Added email and password validation to the createUser endpoint. Invalid inputs now return HTTP 400 with field-specific error messages."
+      existing_docs: "# API\n\n## POST /users\nCreate a new user.\n\n**Body:** `{name, email}`\n"
+    expected_output:
+      updates:
+        - file: "README.md"
+          section: "POST /users"
+          new_content: |
+            ## POST /users
+            Create a new user.
+
+            **Body:** `{name, email, password}`
+
+            **Validation:**
+            - `email` must be a valid email address
+            - `password` must be at least 8 characters
+
+            **Error Responses:**
+            - `400 Bad Request` — returns `{errors: [{field, message}]}` for invalid input
+      changelog_entry: |
+        ## [Unreleased]
+
+        ### Changed
+        - `POST /users` now validates `email` format and `password` length requirements
+        - Invalid input returns HTTP 400 with field-specific error messages instead of 500

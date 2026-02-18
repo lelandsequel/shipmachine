@@ -1,0 +1,100 @@
+id: ship.rollback_plan
+name: Rollback Plan
+description: Generate a clear, executable rollback plan for the changes.
+version: "1.0.0"
+category: output
+
+inputs:
+  - name: changes_summary
+    type: string
+    required: true
+    description: Summary of all changes made
+  - name: files_modified
+    type: string
+    required: true
+    description: JSON array of files that were modified
+  - name: git_branch
+    type: string
+    required: true
+    description: The git branch containing the changes
+
+outputs:
+  schema:
+    type: object
+    required: [steps, commands, estimated_time, data_impact]
+    properties:
+      steps:
+        type: array
+        items:
+          type: string
+        description: Ordered human-readable rollback steps
+      commands:
+        type: array
+        items:
+          type: string
+        description: Exact shell commands to execute the rollback
+      estimated_time:
+        type: string
+        description: Estimated time to complete rollback
+      data_impact:
+        type: string
+        description: Impact on data if rollback is performed (migrations, data loss, etc.)
+
+prompt: |
+  You are a rollback planning agent. Create a clear, executable plan to revert these changes if needed.
+
+  ## Changes Summary
+  {{changes_summary}}
+
+  ## Files Modified
+  {{files_modified}}
+
+  ## Git Branch
+  {{git_branch}}
+
+  Generate a rollback plan that an engineer can execute quickly under pressure.
+
+  Rules:
+  - Steps must be ordered and numbered
+  - Commands must be exact shell commands (no placeholders unless explained)
+  - Estimate realistic time including deploy time
+  - Be explicit about data impact — if there are NO data changes, say so clearly
+  - If rollback requires database changes, flag as high-risk
+  - Include verification step to confirm rollback succeeded
+
+  Respond with a JSON object matching this schema:
+  {
+    "steps": [
+      "1. Do this first",
+      "2. Then do this"
+    ],
+    "commands": [
+      "git checkout main",
+      "git revert HEAD"
+    ],
+    "estimated_time": "10-15 minutes",
+    "data_impact": "None — no database changes were made"
+  }
+
+examples:
+  - inputs:
+      changes_summary: "Added rate limiting middleware to /api/users. No database changes."
+      files_modified: '["src/routes/users.js", "src/middleware/rate-limiter.js"]'
+      git_branch: "feat/rate-limit-users"
+    expected_output:
+      steps:
+        - "1. Identify the PR/commit that introduced the rate limiting changes"
+        - "2. Revert the PR merge commit or cherry-pick the revert"
+        - "3. Run tests to verify revert is clean"
+        - "4. Deploy the reverted code to production"
+        - "5. Verify /api/users responds normally without rate limiting"
+        - "6. Monitor error rates for 5 minutes post-rollback"
+      commands:
+        - "git checkout main"
+        - "git log --oneline -10  # find the merge commit SHA"
+        - "git revert <merge-commit-sha> --mainline 1"
+        - "npm test"
+        - "git push origin main"
+        - "# Deploy via your CI/CD pipeline"
+      estimated_time: "15-20 minutes (including deploy)"
+      data_impact: "None — rate limiting is stateless middleware. No database migrations or data changes were made. Rollback is safe at any time."

@@ -1,0 +1,57 @@
+# ZeroClaw ShipMachine — Governance Config
+# Data classification, model allowlists, approval gates
+
+governance:
+  data_classes:
+    - name: public
+      description: "Publicly available data, no restrictions"
+      allowed_roles: [engineer, reviewer, readonly]
+      requires_redaction: false
+    - name: internal
+      description: "Internal company data, no external sharing"
+      allowed_roles: [engineer, reviewer]
+      requires_redaction: false
+    - name: pii
+      description: "Personally identifiable information"
+      allowed_roles: [engineer]
+      requires_redaction: true
+      redact_patterns:
+        - "\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b"  # email
+        - "\\b\\d{3}[-.]?\\d{3}[-.]?\\d{4}\\b"              # phone
+        - "\\b\\d{3}-\\d{2}-\\d{4}\\b"                      # SSN
+        - "\\bsk-[a-zA-Z0-9]{32,}\\b"                       # API keys
+    - name: secrets
+      description: "Credentials, API keys, passwords — never allowed"
+      allowed_roles: []
+      blocked: true
+
+  model_allowlist:
+    engineer:
+      - claude-sonnet-4-6
+      - claude-opus-4-6
+      - claude-haiku-4-5
+      - gpt-4o
+      - gpt-4o-mini
+    reviewer:
+      - claude-sonnet-4-6
+      - claude-haiku-4-5
+    readonly:
+      - claude-haiku-4-5
+
+  # Prompts that require explicit human approval before execution
+  approval_required:
+    - prompt_id: ship.patch
+      condition: "context.target_env == 'prod'"
+      reason: "Production patches require human sign-off"
+    - prompt_id: ship.rollback_plan
+      condition: "always"
+      reason: "Rollback plans always need human review"
+    - prompt_id: ship.security_check
+      condition: "output.risk_level == 'high'"
+      reason: "High-risk security findings need human escalation"
+
+  # Audit log settings
+  audit:
+    enabled: true
+    log_path: "analytics/audit.jsonl"
+    log_fields: [run_id, timestamp, user_id, role, prompt_id, model, approved, policy_violations]

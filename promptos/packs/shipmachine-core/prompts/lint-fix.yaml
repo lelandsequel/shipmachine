@@ -1,0 +1,118 @@
+id: ship.lint_fix
+name: Lint Fix
+description: Analyze lint output and produce fixed file content.
+version: "1.0.0"
+category: execution
+
+inputs:
+  - name: lint_output
+    type: string
+    required: true
+    description: Raw output from the linter (ESLint, Ruff, Clippy, etc.)
+  - name: file_path
+    type: string
+    required: true
+    description: Path to the file with lint errors
+  - name: file_content
+    type: string
+    required: true
+    description: Current content of the file to fix
+
+outputs:
+  schema:
+    type: object
+    required: [fixes, fixed_content]
+    properties:
+      fixes:
+        type: array
+        items:
+          type: object
+          properties:
+            line:
+              type: number
+            issue:
+              type: string
+            fix:
+              type: string
+        description: List of individual lint issues and their fixes
+      fixed_content:
+        type: string
+        description: Complete file content with all lint issues fixed
+
+prompt: |
+  You are a lint fixing agent. Analyze lint errors and produce corrected code.
+
+  ## File Path
+  {{file_path}}
+
+  ## Lint Output
+  ```
+  {{lint_output}}
+  ```
+
+  ## Current File Content
+  ```
+  {{file_content}}
+  ```
+
+  Fix all lint errors in the file. Rules:
+  - Fix ONLY what the linter reports — don't refactor unrelated code
+  - Preserve the logic and behavior exactly — only fix style/syntax issues
+  - For ESLint: handle common issues (no-unused-vars, semi, quotes, no-undef, etc.)
+  - For Ruff/flake8: handle PEP8 violations
+  - For Clippy: handle Rust idioms
+  - If a lint rule should be disabled (e.g. unavoidable false positive), add an inline suppression comment
+  - The fixed_content must be syntactically valid and complete
+
+  Respond with a JSON object matching this schema:
+  {
+    "fixes": [
+      {
+        "line": 5,
+        "issue": "Missing semicolon (semi)",
+        "fix": "Added semicolon at end of statement"
+      }
+    ],
+    "fixed_content": "complete fixed file content as a string"
+  }
+
+examples:
+  - inputs:
+      lint_output: |
+        src/utils/helper.js
+          3:10  error  'unused' is defined but never used  no-unused-vars
+          7:23  error  Missing semicolon                   semi
+          12:1  error  Expected indentation of 2 spaces    indent
+      file_path: "src/utils/helper.js"
+      file_content: |
+        import { foo } from './foo.js';
+        import { unused } from './unused.js';
+
+        export function helper(x) {
+          return foo(x)
+        }
+
+        export function format(val) {
+            return val.toString();
+        }
+    expected_output:
+      fixes:
+        - line: 2
+          issue: "'unused' is defined but never used (no-unused-vars)"
+          fix: "Removed unused import of 'unused'"
+        - line: 5
+          issue: "Missing semicolon (semi)"
+          fix: "Added semicolon after foo(x)"
+        - line: 9
+          issue: "Expected indentation of 2 spaces (indent)"
+          fix: "Changed 4-space indent to 2-space"
+      fixed_content: |
+        import { foo } from './foo.js';
+
+        export function helper(x) {
+          return foo(x);
+        }
+
+        export function format(val) {
+          return val.toString();
+        }

@@ -1,0 +1,43 @@
+name: shipmachine-core
+version: "1.0.0"
+description: "Core prompt pack for ZeroClaw ShipMachine engineering agent"
+author: JourdanLabs / Android 18
+tags: [engineering, shipmachine, code, pr]
+
+prompts:
+  - id: ship.scope_task
+    file: prompts/scope-task.yaml
+    category: planning
+  - id: ship.repo_survey
+    file: prompts/repo-survey.yaml
+    category: planning
+  - id: ship.plan
+    file: prompts/plan.yaml
+    category: planning
+  - id: ship.patch
+    file: prompts/patch.yaml
+    category: execution
+  - id: ship.tests
+    file: prompts/tests.yaml
+    category: execution
+  - id: ship.run_tests_interpret
+    file: prompts/run-tests-interpret.yaml
+    category: execution
+  - id: ship.lint_fix
+    file: prompts/lint-fix.yaml
+    category: execution
+  - id: ship.security_check
+    file: prompts/security-check.yaml
+    category: review
+  - id: ship.doc_update
+    file: prompts/doc-update.yaml
+    category: review
+  - id: ship.pr_writeup
+    file: prompts/pr-writeup.yaml
+    category: output
+  - id: ship.risk_assessment
+    file: prompts/risk-assessment.yaml
+    category: output
+  - id: ship.rollback_plan
+    file: prompts/rollback-plan.yaml
+    category: output

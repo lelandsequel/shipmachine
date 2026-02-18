@@ -1,0 +1,141 @@
+id: ship.plan
+name: Engineering Plan
+description: Generate an ordered, step-by-step engineering plan with test gates and checkpoints.
+version: "1.0.0"
+category: planning
+
+inputs:
+  - name: objective
+    type: string
+    required: true
+    description: The original engineering objective
+  - name: scope_output
+    type: string
+    required: true
+    description: JSON output from ship.scope_task (acceptance criteria, constraints, done definition)
+  - name: repo_survey_output
+    type: string
+    required: true
+    description: JSON output from ship.repo_survey (entrypoints, commands, key modules)
+
+outputs:
+  schema:
+    type: object
+    required: [steps, estimated_complexity, warnings]
+    properties:
+      steps:
+        type: array
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+            description:
+              type: string
+            type:
+              type: string
+            files_affected:
+              type: array
+              items:
+                type: string
+            test_checkpoint:
+              type: boolean
+        description: Ordered list of implementation steps
+      estimated_complexity:
+        type: string
+        description: Overall complexity estimate (trivial/low/medium/high/very-high)
+      warnings:
+        type: array
+        items:
+          type: string
+        description: Important caveats or areas of concern in the plan
+
+prompt: |
+  You are an engineering planner. Generate a precise, ordered implementation plan for this task.
+
+  ## Objective
+  {{objective}}
+
+  ## Scope (from ship.scope_task)
+  ```json
+  {{scope_output}}
+  ```
+
+  ## Repository Survey (from ship.repo_survey)
+  ```json
+  {{repo_survey_output}}
+  ```
+
+  Generate an ordered plan with concrete steps. Each step must be:
+  - Atomic and independently executable
+  - Clearly typed (analysis/patch/tests/docs/exec/review)
+  - Linked to specific files that will be affected
+  - Marked with test_checkpoint=true if tests should be run after this step
+
+  Step types:
+  - **analysis** — read/understand code, no changes
+  - **patch** — modify existing code
+  - **create** — create new files
+  - **tests** — add or update tests
+  - **docs** — update documentation/comments
+  - **exec** — run a command (build, lint, etc.)
+  - **review** — security or quality check
+
+  Rules:
+  - Always have at least one test step after each patch step
+  - Final step should be a test run to verify everything
+  - Keep steps small and focused (one concern per step)
+  - File paths must be relative to repo root
+  - Maximum 15 steps (keep it focused)
+
+  Respond with a JSON object matching this schema:
+  {
+    "steps": [
+      {
+        "id": "step-N",
+        "description": "string",
+        "type": "patch|tests|docs|exec|analysis|create|review",
+        "files_affected": ["relative/path/to/file.js"],
+        "test_checkpoint": true|false
+      }
+    ],
+    "estimated_complexity": "trivial|low|medium|high|very-high",
+    "warnings": ["string"]
+  }
+
+examples:
+  - inputs:
+      objective: "Add input validation to the createUser endpoint"
+      scope_output: '{"acceptance_criteria":["Invalid emails rejected with 400","Missing required fields return 400 with field list"],"constraints":["No response format changes"],"done_definition":"Input validation enforced, tests pass","risk_flags":["May reject previously-accepted inputs"]}'
+      repo_survey_output: '{"entrypoints":["src/index.js"],"test_command":"npm test","key_modules":[{"path":"src/routes/users.js","purpose":"User CRUD routes"}]}'
+    expected_output:
+      steps:
+        - id: "step-1"
+          description: "Read src/routes/users.js and understand current createUser handler"
+          type: "analysis"
+          files_affected: ["src/routes/users.js"]
+          test_checkpoint: false
+        - id: "step-2"
+          description: "Add Zod/Joi validation schema for createUser input (email, name, password fields)"
+          type: "patch"
+          files_affected: ["src/routes/users.js", "src/validators/user.js"]
+          test_checkpoint: false
+        - id: "step-3"
+          description: "Add validation middleware to createUser route"
+          type: "patch"
+          files_affected: ["src/routes/users.js"]
+          test_checkpoint: true
+        - id: "step-4"
+          description: "Update tests to cover invalid input scenarios"
+          type: "tests"
+          files_affected: ["tests/routes/users.test.js"]
+          test_checkpoint: true
+        - id: "step-5"
+          description: "Run full test suite to verify no regressions"
+          type: "exec"
+          files_affected: []
+          test_checkpoint: true
+      estimated_complexity: "low"
+      warnings:
+        - "Validation may reject inputs that previously succeeded — check for existing clients"
+        - "Ensure error message format matches what clients expect"

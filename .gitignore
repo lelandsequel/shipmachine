@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+pr-bundles/
+workspace-checkouts/
+analytics/
+.DS_Store
+coverage/
+dist/

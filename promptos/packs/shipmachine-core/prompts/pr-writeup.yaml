@@ -1,0 +1,121 @@
+id: ship.pr_writeup
+name: PR Writeup
+description: Generate a complete pull request description with title, body, checklist, and rollout notes.
+version: "1.0.0"
+category: output
+
+inputs:
+  - name: objective
+    type: string
+    required: true
+    description: The original engineering objective that drove this work
+  - name: plan_output
+    type: string
+    required: true
+    description: The plan that was executed (JSON from ship.plan)
+  - name: changes_summary
+    type: string
+    required: true
+    description: Summary of what was actually changed (files, logic, behavior)
+  - name: test_evidence
+    type: string
+    required: true
+    description: Test results evidence (passed/failed counts, key test names)
+
+outputs:
+  schema:
+    type: object
+    required: [title, body, checklist, labels, rollout_notes]
+    properties:
+      title:
+        type: string
+        description: PR title in conventional commit format (feat/fix/chore/docs/refactor)
+      body:
+        type: string
+        description: Full PR body in markdown
+      checklist:
+        type: array
+        items:
+          type: string
+        description: PR review checklist items
+      labels:
+        type: array
+        items:
+          type: string
+        description: Suggested GitHub labels
+      rollout_notes:
+        type: string
+        description: Deployment/rollout instructions and notes
+
+prompt: |
+  You are a PR writing agent. Generate a complete, professional pull request description.
+
+  ## Original Objective
+  {{objective}}
+
+  ## Execution Plan
+  ```json
+  {{plan_output}}
+  ```
+
+  ## Changes Made
+  {{changes_summary}}
+
+  ## Test Evidence
+  {{test_evidence}}
+
+  Write a pull request that clearly communicates what was done, why, and how to review it.
+
+  Title format: `type(scope): description` where type is feat/fix/chore/docs/refactor/test/perf
+
+  Body must include:
+  - **Summary** — 2-3 sentences on what this PR does and why
+  - **Changes** — bullet list of specific changes made
+  - **Testing** — how it was tested, test results summary
+  - **Screenshots/Evidence** — note "See TESTS_EVIDENCE.md in PR bundle"
+
+  Labels to choose from: enhancement, bug, documentation, refactor, testing, security, breaking-change, automated-pr
+
+  Respond with a JSON object matching this schema:
+  {
+    "title": "string",
+    "body": "string (markdown)",
+    "checklist": ["string"],
+    "labels": ["string"],
+    "rollout_notes": "string"
+  }
+
+examples:
+  - inputs:
+      objective: "Add rate limiting to the /api/users endpoint"
+      plan_output: '{"steps":[{"id":"step-1","type":"patch"},{"id":"step-2","type":"tests"}],"estimated_complexity":"low"}'
+      changes_summary: "Added express-rate-limit middleware to /api/users. Rate limited to 100 req/min per IP. Returns 429 with Retry-After header."
+      test_evidence: "13 tests passed, 0 failed. Coverage: users.js 94%, rate-limiter.js 100%"
+    expected_output:
+      title: "feat(api): add rate limiting to /api/users endpoint"
+      body: |
+        ## Summary
+        Adds per-IP rate limiting to the `/api/users` endpoint to prevent abuse and ensure fair usage. Requests exceeding 100/minute receive a `429 Too Many Requests` response with a `Retry-After` header.
+
+        ## Changes
+        - Added `express-rate-limit` middleware scoped to `/api/users`
+        - Rate limit: 100 requests per minute per IP address
+        - Returns `429` with `Retry-After` header on exceeded limit
+        - Rate limit configuration is externalized to `config.rateLimits`
+
+        ## Testing
+        - 13 tests pass, 0 failures
+        - Coverage: users.js 94%, rate-limiter.js 100%
+        - See `TESTS_EVIDENCE.md` in PR bundle for full output
+
+        ## Notes
+        Rate limit state is currently in-memory. For distributed deployments, a Redis store should be configured.
+      checklist:
+        - "Rate limiting behavior verified in tests"
+        - "429 response format matches API spec"
+        - "Retry-After header is correct"
+        - "Existing user tests still pass"
+        - "Configuration is documented"
+        - "No breaking changes to successful request format"
+      labels: ["enhancement", "automated-pr"]
+      rollout_notes: "Standard deployment. No migrations. If running multiple instances, configure Redis store for shared rate limit state."

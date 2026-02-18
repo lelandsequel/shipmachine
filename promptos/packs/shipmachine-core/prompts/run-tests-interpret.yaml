@@ -1,0 +1,105 @@
+id: ship.run_tests_interpret
+name: Interpret Test Results
+description: Analyze test output and decide the next action (continue, fix, escalate, or abort).
+version: "1.0.0"
+category: execution
+
+inputs:
+  - name: test_output
+    type: string
+    required: true
+    description: Raw stdout/stderr output from running the test suite
+  - name: test_command
+    type: string
+    required: true
+    description: The test command that was run (e.g. "npm test", "pytest")
+  - name: step_context
+    type: string
+    required: true
+    description: Description of the current step being implemented (for context)
+
+outputs:
+  schema:
+    type: object
+    required: [passed, failing_tests, root_cause, suggested_fix, next_action]
+    properties:
+      passed:
+        type: boolean
+        description: Whether the test run overall passed
+      failing_tests:
+        type: array
+        items:
+          type: string
+        description: Names/identifiers of failing tests
+      root_cause:
+        type: string
+        description: Analysis of why tests are failing (or "No failures" if passed)
+      suggested_fix:
+        type: string
+        description: Specific suggestion for fixing failures (or "None needed" if passed)
+      next_action:
+        type: string
+        description: "continue|fix|escalate|abort — what the agent should do next"
+
+prompt: |
+  You are a test result interpreter. Analyze test output and determine the correct next action.
+
+  ## Test Command
+  {{test_command}}
+
+  ## Step Context
+  {{step_context}}
+
+  ## Test Output
+  ```
+  {{test_output}}
+  ```
+
+  Analyze the test results and determine:
+  1. **passed** — did the overall test run succeed?
+  2. **failing_tests** — list the exact names/identifiers of any failing tests
+  3. **root_cause** — why are tests failing? Be specific (assertion mismatch, import error, timeout, etc.)
+  4. **suggested_fix** — concrete, actionable fix suggestion
+  5. **next_action** — one of:
+     - `continue` — tests pass, proceed to next step
+     - `fix` — tests fail, attempt an automated fix (retryable)
+     - `escalate` — tests fail with complex issues requiring human judgment
+     - `abort` — catastrophic failure (build broken, unrecoverable error)
+
+  Decision rules:
+  - `continue`: exit code 0, all tests green
+  - `fix`: 1-3 failing tests with clear, fixable root cause
+  - `escalate`: failing tests with unclear root cause, systemic failures, or if fix was already attempted
+  - `abort`: build errors, dependency errors, unresolvable import failures
+
+  Respond with a JSON object matching this schema:
+  {
+    "passed": true|false,
+    "failing_tests": ["test name or description"],
+    "root_cause": "string",
+    "suggested_fix": "string",
+    "next_action": "continue|fix|escalate|abort"
+  }
+
+examples:
+  - inputs:
+      test_command: "npm test"
+      step_context: "Added email validation to the createUser endpoint"
+      test_output: |
+        PASS src/utils/__tests__/validate.test.js
+        FAIL src/routes/__tests__/users.test.js
+          ● createUser > should create user with valid data
+
+            Expected: 201
+            Received: 400
+
+            at Object.<anonymous> (src/routes/__tests__/users.test.js:15:5)
+
+        Tests: 1 failed, 12 passed, 13 total
+    expected_output:
+      passed: false
+      failing_tests:
+        - "createUser > should create user with valid data"
+      root_cause: "createUser test sends data without email field, but new validation rejects it with 400. Test data needs to be updated to include a valid email."
+      suggested_fix: "Update test fixture at users.test.js:15 to include a valid email field in the request body"
+      next_action: "fix"

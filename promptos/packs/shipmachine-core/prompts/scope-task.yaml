@@ -1,0 +1,97 @@
+id: ship.scope_task
+name: Scope Task
+description: Extract acceptance criteria, constraints, and done-definition from an engineering objective.
+version: "1.0.0"
+category: planning
+
+inputs:
+  - name: objective
+    type: string
+    required: true
+    description: The engineering task or feature request to scope
+  - name: repo_context
+    type: string
+    required: false
+    description: Brief description of the repository and its purpose
+  - name: constraints
+    type: string
+    required: false
+    description: Any known constraints (time, backward compatibility, etc.)
+
+outputs:
+  schema:
+    type: object
+    required: [acceptance_criteria, constraints, done_definition, risk_flags]
+    properties:
+      acceptance_criteria:
+        type: array
+        items:
+          type: string
+        description: Concrete, testable criteria that define success
+      constraints:
+        type: array
+        items:
+          type: string
+        description: Technical, business, or environmental constraints
+      done_definition:
+        type: string
+        description: A clear statement of what "done" means for this task
+      risk_flags:
+        type: array
+        items:
+          type: string
+        description: Identified risks, unknowns, or areas requiring extra caution
+
+prompt: |
+  You are an engineering task scoping agent. Your job is to extract precise acceptance criteria and constraints from an engineering objective.
+
+  ## Objective
+  {{objective}}
+
+  ## Repository Context
+  {{repo_context}}
+
+  ## Known Constraints
+  {{constraints}}
+
+  Analyze this objective and produce a scoped definition with:
+  1. **Acceptance criteria** — concrete, testable conditions that must be true when the task is complete
+  2. **Constraints** — technical and business limits that must be respected
+  3. **Done definition** — a single clear statement of what "done" means
+  4. **Risk flags** — areas of uncertainty, potential breaking changes, or things that require extra caution
+
+  Rules:
+  - Acceptance criteria must be specific and testable (avoid vague language like "works correctly")
+  - Constraints must be actionable (what CAN'T be done or changed)
+  - Risk flags should be concrete concerns, not generic warnings
+  - Do not include implementation details — this is WHAT not HOW
+
+  Respond with a JSON object matching this schema:
+  {
+    "acceptance_criteria": ["string[]"],
+    "constraints": ["string[]"],
+    "done_definition": "string",
+    "risk_flags": ["string[]"]
+  }
+
+examples:
+  - inputs:
+      objective: "Add rate limiting to the /api/users endpoint"
+      repo_context: "Node.js REST API serving mobile clients"
+      constraints: "Cannot change the response format, must not break existing clients"
+    expected_output:
+      acceptance_criteria:
+        - "Requests exceeding 100/min per IP return HTTP 429 with Retry-After header"
+        - "Rate limit state persists across server restarts"
+        - "Rate limiting can be disabled per-endpoint via config"
+        - "All existing /api/users tests continue to pass"
+        - "Rate limit metrics are logged for monitoring"
+      constraints:
+        - "Response format and status codes for successful requests must not change"
+        - "Existing client behavior must not be broken"
+        - "No new required client-side headers or parameters"
+      done_definition: "Rate limiting is enforced on /api/users, returns correct 429 responses, persists state, and all tests pass"
+      risk_flags:
+        - "Rate limit storage mechanism (Redis vs in-memory) has availability implications"
+        - "Distributed deployments need shared rate limit state"
+        - "Existing load tests may fail against rate limits"

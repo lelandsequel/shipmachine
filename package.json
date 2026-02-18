@@ -1,0 +1,33 @@
+{
+  "name": "zeroclaw-shipmachine",
+  "version": "0.1.0",
+  "description": "Engineering-only shipping agent. Every LLM call mediated by PromptOS. Objective → Plan → Code → PR.",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "zeroclaw": "./cli/index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "run-task": "node cli/index.js run-task",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "lint": "eslint . --ext .js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "js-yaml": "^4.1.0",
+    "uuid": "^9.0.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["engineering", "shipmachine", "promptos", "agent", "pr"],
+  "author": "JourdanLabs / Android 18",
+  "license": "MIT"
+}

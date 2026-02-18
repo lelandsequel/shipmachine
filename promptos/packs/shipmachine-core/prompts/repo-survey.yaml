@@ -1,0 +1,133 @@
+id: ship.repo_survey
+name: Repository Survey
+description: Map the codebase — identify entrypoints, build/test commands, key modules, and tech stack.
+version: "1.0.0"
+category: planning
+
+inputs:
+  - name: repo_path
+    type: string
+    required: true
+    description: Absolute path to the repository root
+  - name: file_tree
+    type: string
+    required: true
+    description: Formatted directory tree of the repository (up to 4 levels deep)
+  - name: package_json_or_requirements
+    type: string
+    required: false
+    description: Contents of package.json, requirements.txt, Cargo.toml, go.mod, or similar dependency file
+
+outputs:
+  schema:
+    type: object
+    required: [entrypoints, build_command, test_command, lint_command, key_modules, tech_stack]
+    properties:
+      entrypoints:
+        type: array
+        items:
+          type: string
+        description: Main entry point files (e.g. index.js, main.py, main.rs)
+      build_command:
+        type: string
+        description: The command to build the project
+      test_command:
+        type: string
+        description: The command to run tests
+      lint_command:
+        type: string
+        description: The command to run linting
+      key_modules:
+        type: array
+        items:
+          type: object
+          properties:
+            path:
+              type: string
+            purpose:
+              type: string
+        description: Important modules and their purpose
+      tech_stack:
+        type: array
+        items:
+          type: string
+        description: Technologies, frameworks, and libraries in use
+
+prompt: |
+  You are a codebase analysis agent. Survey this repository and extract the key information needed to make engineering changes.
+
+  ## Repository Path
+  {{repo_path}}
+
+  ## File Tree
+  ```
+  {{file_tree}}
+  ```
+
+  ## Dependency File
+  ```
+  {{package_json_or_requirements}}
+  ```
+
+  Analyze the repository structure and identify:
+  1. **Entrypoints** — main files where execution begins (index.js, main.py, app.py, src/main.rs, etc.)
+  2. **Build command** — how to compile/build the project
+  3. **Test command** — how to run the test suite
+  4. **Lint command** — how to run linting/formatting checks
+  5. **Key modules** — most important directories/files and what they do (max 10)
+  6. **Tech stack** — languages, frameworks, notable libraries
+
+  Rules:
+  - Infer commands from scripts in package.json, Makefile, etc.
+  - For monorepos, identify the relevant workspace
+  - If a command is unknown, use "unknown" not a guess
+  - Key modules should be directories or specific files that matter most for making changes
+
+  Respond with a JSON object matching this schema:
+  {
+    "entrypoints": ["string"],
+    "build_command": "string",
+    "test_command": "string",
+    "lint_command": "string",
+    "key_modules": [{"path": "string", "purpose": "string"}],
+    "tech_stack": ["string"]
+  }
+
+examples:
+  - inputs:
+      repo_path: "/workspace/my-api"
+      file_tree: |
+        my-api/
+        ├── src/
+        │   ├── index.js
+        │   ├── routes/
+        │   ├── models/
+        │   └── middleware/
+        ├── tests/
+        ├── package.json
+        └── README.md
+      package_json_or_requirements: |
+        {
+          "scripts": {
+            "start": "node src/index.js",
+            "test": "jest",
+            "lint": "eslint src/"
+          },
+          "dependencies": {
+            "express": "^4.18.0",
+            "mongoose": "^7.0.0"
+          }
+        }
+    expected_output:
+      entrypoints: ["src/index.js"]
+      build_command: "npm run build"
+      test_command: "jest"
+      lint_command: "eslint src/"
+      key_modules:
+        - path: "src/routes/"
+          purpose: "HTTP route handlers"
+        - path: "src/models/"
+          purpose: "Database models (Mongoose)"
+        - path: "src/middleware/"
+          purpose: "Express middleware (auth, validation, etc.)"
+      tech_stack: ["Node.js", "Express", "MongoDB", "Mongoose", "Jest"]

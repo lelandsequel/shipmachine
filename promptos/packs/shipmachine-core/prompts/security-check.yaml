@@ -1,0 +1,108 @@
+id: ship.security_check
+name: Security Check
+description: Review code changes for security vulnerabilities, dangerous patterns, and risk.
+version: "1.0.0"
+category: review
+
+inputs:
+  - name: diff
+    type: string
+    required: true
+    description: Unified diff of all changes to be reviewed
+  - name: file_paths
+    type: string
+    required: true
+    description: JSON array of file paths that were modified
+
+outputs:
+  schema:
+    type: object
+    required: [risk_level, issues, safe_to_proceed]
+    properties:
+      risk_level:
+        type: string
+        description: "none|low|medium|high|critical"
+      issues:
+        type: array
+        items:
+          type: object
+          properties:
+            file:
+              type: string
+            line:
+              type: number
+            issue:
+              type: string
+            severity:
+              type: string
+        description: List of security issues found
+      safe_to_proceed:
+        type: boolean
+        description: Whether it is safe to proceed without human review
+
+prompt: |
+  You are a security review agent. Analyze code changes for security vulnerabilities and dangerous patterns.
+
+  ## Files Modified
+  {{file_paths}}
+
+  ## Code Diff
+  ```diff
+  {{diff}}
+  ```
+
+  Review the diff for these security concerns:
+  1. **Injection** — SQL injection, command injection, XSS, SSTI
+  2. **Authentication/Authorization** — missing auth checks, privilege escalation, hardcoded credentials
+  3. **Cryptography** — weak algorithms, hardcoded keys/secrets, improper random
+  4. **Input validation** — missing validation, unsafe deserialization, path traversal
+  5. **Information disclosure** — logging sensitive data, exposing stack traces, verbose errors
+  6. **Dependency risks** — new dependencies with known CVEs
+  7. **Dangerous operations** — file deletion, database drops, unsafe evals
+
+  Severity levels:
+  - **critical** — immediate exploitation possible (injection, auth bypass, hardcoded secrets)
+  - **high** — likely exploitable with some effort
+  - **medium** — potential vulnerability requiring specific conditions
+  - **low** — minor concern, best practice violation
+  - **info** — observation, not a vulnerability
+
+  Risk level rules:
+  - `critical`: any critical severity issue → safe_to_proceed = false
+  - `high`: any high severity → safe_to_proceed = false
+  - `medium`: medium issues present → safe_to_proceed = true (but flag)
+  - `low`/`none`: safe_to_proceed = true
+
+  Respond with a JSON object matching this schema:
+  {
+    "risk_level": "none|low|medium|high|critical",
+    "issues": [
+      {
+        "file": "path/to/file.js",
+        "line": 42,
+        "issue": "description of the security concern",
+        "severity": "critical|high|medium|low|info"
+      }
+    ],
+    "safe_to_proceed": true|false
+  }
+
+examples:
+  - inputs:
+      file_paths: '["src/api/query.js"]'
+      diff: |
+        +++ src/api/query.js
+        @@ -5,7 +5,7 @@
+         export async function getUser(userId) {
+        -  const result = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
+        +  const result = await db.query(`SELECT * FROM users WHERE id = ${userId}`);
+           return result[0];
+         }
+    expected_output:
+      risk_level: "critical"
+      issues:
+        - file: "src/api/query.js"
+          line: 7
+          issue: "SQL injection vulnerability: userId is interpolated directly into the query string without parameterization. An attacker can inject arbitrary SQL."
+          severity: "critical"
+      safe_to_proceed: false

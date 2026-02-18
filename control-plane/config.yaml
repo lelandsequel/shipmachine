@@ -1,0 +1,63 @@
+policy:
+  network_allowed: false
+  dangerous_commands_require_human: true
+  allowed_commands:
+    - "npm test"
+    - "npm run build"
+    - "npm run lint"
+    - "pytest"
+    - "python -m pytest"
+    - "make test"
+    - "cargo test"
+    - "go test ./..."
+  allowed_paths:
+    - "/workspace/**"
+    - "/Users/**"
+    - "/var/folders/**"
+    - "/tmp/**"
+    - "/private/var/folders/**"
+
+governance:
+  data_classes:
+    - name: public
+      allowed_roles: [engineer, reviewer, readonly]
+    - name: internal
+      allowed_roles: [engineer, reviewer]
+    - name: pii
+      allowed_roles: [engineer]
+      requires_redaction: true
+    - name: secrets
+      allowed_roles: []
+      blocked: true
+  
+  model_allowlist:
+    engineer:
+      - claude-3-5-sonnet
+      - claude-sonnet-4-6
+      - gpt-4o
+    reviewer:
+      - claude-3-5-sonnet
+    readonly:
+      - claude-haiku-4-5
+
+  approval_required:
+    - ship.patch  # when target_env=prod
+    - ship.rollback_plan  # always
+
+rbac:
+  roles:
+    - name: engineer
+      allowed_prompts: ["ship.*"]
+      allowed_tools: ["FS", "Git", "Exec", "Tests", "PR"]
+    - name: reviewer
+      allowed_prompts: ["ship.pr_writeup", "ship.risk_assessment", "ship.rollback_plan"]
+      allowed_tools: ["FS", "Git"]
+    - name: readonly
+      allowed_prompts: ["ship.repo_survey", "ship.scope_task"]
+      allowed_tools: ["FS"]
+
+budgets:
+  max_steps: 50
+  max_tokens: 500000
+  max_time_minutes: 30
+  max_files_modified: 20

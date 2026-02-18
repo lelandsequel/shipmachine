@@ -1,0 +1,95 @@
+id: ship.risk_assessment
+name: Risk Assessment
+description: Assess the risk level, blast radius, and go/no-go recommendation for the changes.
+version: "1.0.0"
+category: output
+
+inputs:
+  - name: changes_summary
+    type: string
+    required: true
+    description: Plain-text summary of all changes made
+  - name: files_modified
+    type: string
+    required: true
+    description: JSON array of files that were modified
+  - name: test_evidence
+    type: string
+    required: true
+    description: Test results — passed/failed counts, any failures
+
+outputs:
+  schema:
+    type: object
+    required: [risk_level, blast_radius, dependencies_affected, rollback_complexity, go_no_go]
+    properties:
+      risk_level:
+        type: string
+        description: "none|low|medium|high|critical"
+      blast_radius:
+        type: string
+        description: Description of what could break if this change has a bug
+      dependencies_affected:
+        type: array
+        items:
+          type: string
+        description: Downstream services, modules, or consumers affected
+      rollback_complexity:
+        type: string
+        description: "simple|moderate|complex|very-complex — how hard to roll back"
+      go_no_go:
+        type: string
+        description: "go|no-go|conditional — merge recommendation with brief reason"
+
+prompt: |
+  You are a risk assessment agent. Evaluate the risk of merging these engineering changes.
+
+  ## Changes Summary
+  {{changes_summary}}
+
+  ## Files Modified
+  {{files_modified}}
+
+  ## Test Evidence
+  {{test_evidence}}
+
+  Assess the risk level and provide a go/no-go recommendation.
+
+  Risk level criteria:
+  - **none** — trivial changes (comments, docs, formatting)
+  - **low** — additive changes, new features behind flags, well-tested
+  - **medium** — changes to existing logic, moderate test coverage
+  - **high** — changes to core paths, auth, data handling, or untested code
+  - **critical** — changes to security-critical systems, migrations, or breaking changes
+
+  Blast radius analysis:
+  - Which features/endpoints are affected?
+  - What users or systems are impacted?
+  - Is the impact bounded or unbounded?
+
+  Go/No-Go criteria:
+  - **go** — risk is low/none, tests pass, no concerns
+  - **no-go** — high/critical risk, failing tests, security issues, or missing coverage
+  - **conditional** — medium risk, additional review or monitoring needed before/after deploy
+
+  Respond with a JSON object matching this schema:
+  {
+    "risk_level": "none|low|medium|high|critical",
+    "blast_radius": "string",
+    "dependencies_affected": ["string"],
+    "rollback_complexity": "simple|moderate|complex|very-complex",
+    "go_no_go": "go|no-go|conditional — [brief reason]"
+  }
+
+examples:
+  - inputs:
+      changes_summary: "Added rate limiting middleware to /api/users. No changes to response format."
+      files_modified: '["src/routes/users.js", "src/middleware/rate-limiter.js"]'
+      test_evidence: "13 passed, 0 failed. Coverage 94%."
+    expected_output:
+      risk_level: "low"
+      blast_radius: "Limited to /api/users endpoint. Legitimate high-frequency clients may be rate-limited. No data loss possible."
+      dependencies_affected:
+        - "Any client calling /api/users > 100 times/minute"
+      rollback_complexity: "simple"
+      go_no_go: "go — low risk, tests pass, additive change, well-contained blast radius"
