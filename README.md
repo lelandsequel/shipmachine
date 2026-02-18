@@ -1,10 +1,10 @@
-# ZeroClaw ShipMachine
+# ShipMachine
 
 > A pure engineering shipping agent. Every LLM call is mediated by PromptOS. No life assistant. No free prompting. Just: **Objective → Plan → Code → PR**.
 
 ## What is ShipMachine?
 
-ZeroClaw ShipMachine is an **engineering-only** AI agent designed for one purpose: take an engineering objective and ship it. It's not a personal assistant, not a chat bot — it's a deterministic shipping machine.
+ ShipMachine is an **engineering-only** AI agent designed for one purpose: take an engineering objective and ship it. It's not a personal assistant, not a chat bot — it's a deterministic shipping machine.
 
 **Every LLM call is mediated by PromptOS.** There are no raw LLM calls. Every reasoning step maps to a `PromptSpec` ID with strict schema validation on inputs and outputs.
 
