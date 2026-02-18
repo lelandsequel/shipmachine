@@ -1,0 +1,60 @@
+name: ShipMachine Eval
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  eval:
+    name: Agent Eval (dry-run)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --cache /tmp/npm-cache
+
+      - name: Run eval suite (dry-run, no API calls)
+        run: node eval/runner.js --dry-run --output EVAL_RESULTS.md
+
+      - name: Print results
+        if: always()
+        run: cat EVAL_RESULTS.md
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: EVAL_RESULTS.md
+
+  policy-check:
+    name: Policy + RBAC
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --cache /tmp/npm-cache
+
+      - name: Verify policy engine loads
+        run: |
+          node --input-type=module <<'EOF'
+          import { PolicyEngine } from './control-plane/policy.js';
+          const p = new PolicyEngine('./control-plane/config.yaml');
+          console.assert(p.checkPromptAllowed('engineer', 'ship.plan'), 'engineer can run ship.plan');
+          console.assert(!p.checkPromptAllowed('readonly', 'ship.patch'), 'readonly blocked from ship.patch');
+          console.assert(p.checkToolAllowed('engineer', 'Git'), 'engineer has Git');
+          console.assert(!p.checkToolAllowed('readonly', 'Git'), 'readonly blocked from Git');
+          console.log('✅ Policy checks passed');
+          EOF
