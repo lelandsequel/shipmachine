@@ -95,7 +95,10 @@ async function runFixture(fixture) {
  * Main eval runner.
  */
 async function main() {
-  const fixtures = [
+  const isDryRun = process.env.EVAL_DRY_RUN === '1';
+  const fixtureFilter = process.env.EVAL_FIXTURE || null;
+
+  let fixtures = [
     {
       name: 'simple-feature',
       task: "Add a hello() function to utils.js that returns 'Hello, World!'",
@@ -110,8 +113,29 @@ async function main() {
     }
   ];
 
+  // Filter by --fixture name if specified
+  if (fixtureFilter) {
+    fixtures = fixtures.filter(f => f.name === fixtureFilter);
+    if (fixtures.length === 0) {
+      console.error(chalk.red(`No fixture found with name: ${fixtureFilter}`));
+      process.exit(1);
+    }
+  }
+
   console.log(chalk.bold.cyan('🧪 ZeroClaw ShipMachine Evaluation Suite\n'));
-  console.log(chalk.gray(`Running ${fixtures.length} fixtures...`));
+
+  // Dry-run: just list fixtures, skip execution
+  if (isDryRun) {
+    console.log(chalk.yellow('DRY RUN — listing fixtures only:\n'));
+    for (const f of fixtures) {
+      console.log(chalk.cyan(`  • ${f.name}`));
+      console.log(chalk.gray(`    Task: ${f.task}`));
+    }
+    console.log(chalk.gray(`\n${fixtures.length} fixture(s) would run.\n`));
+    process.exit(0);
+  }
+
+  console.log(chalk.gray(`Running ${fixtures.length} fixture(s)...`));
 
   const results = [];
 

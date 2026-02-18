@@ -93,7 +93,7 @@ export class TestsTool {
     if (/^test result:/m.test(output) || /cargo test/i.test(output)) return 'cargo';
     if (/^--- (PASS|FAIL)/m.test(output) || /^ok\s+\S+/m.test(output)) return 'go';
     if (/passing|failing/i.test(output) && /mocha/i.test(output)) return 'mocha';
-    if (/\d+ passed/i.test(output)) return 'pytest'; // fallback for pytest-like
+    if (/\d+ passed/i.test(output) && !/node|tap|ok \d+/i.test(output)) return 'pytest'; // fallback for pytest-like (not node:test)
     if (/Tests:.*\d+/i.test(output)) return 'jest'; // fallback for jest-like
     return 'generic';
   }

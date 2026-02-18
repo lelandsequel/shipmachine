@@ -203,12 +203,28 @@ packCmd
 program
   .command('eval')
   .description('Run evaluation suite')
-  .action(() => {
+  .option('--dry-run', 'Show what would be evaluated without running LLM calls', false)
+  .option('--fixture <name>', 'Run a specific eval fixture by name')
+  .option('--verbose', 'Show detailed output for each fixture', false)
+  .action((options) => {
     console.log(chalk.bold.cyan('\n🧪 Running Evaluation Suite...\n'));
-    
+
     const runnerPath = path.join(__dirname, '..', 'eval', 'runner.js');
+    const env = { ...process.env };
+
+    if (options.dryRun) {
+      console.log(chalk.yellow('  --dry-run: listing fixtures only (no LLM calls)\n'));
+      env.EVAL_DRY_RUN = '1';
+    }
+    if (options.fixture) {
+      env.EVAL_FIXTURE = options.fixture;
+    }
+    if (options.verbose) {
+      env.EVAL_VERBOSE = '1';
+    }
+
     try {
-      execSync(`node ${runnerPath}`, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+      execSync(`node ${runnerPath}`, { stdio: 'inherit', cwd: path.join(__dirname, '..'), env });
     } catch (err) {
       console.error(chalk.red('Eval failed:', err.message));
       process.exit(1);

@@ -92,6 +92,8 @@ export class PRTool {
     }
 
     // MANIFEST.json — metadata about the bundle
+    // Push MANIFEST.json to files BEFORE writing so it appears in its own files array
+    files.push('MANIFEST.json');
     const manifest = {
       created: new Date().toISOString(),
       objective: artifacts.objective || 'Unknown objective',
@@ -104,7 +106,6 @@ export class PRTool {
       JSON.stringify(manifest, null, 2),
       'utf8'
     );
-    files.push('MANIFEST.json');
 
     return { bundlePath, files };
   }
