@@ -1,6 +1,6 @@
 name: shipmachine-core
 version: "1.0.0"
-description: "Core prompt pack for ZeroClaw ShipMachine engineering agent"
+description: "Core prompt pack for ShipMachine ShipMachine engineering agent"
 author: JourdanLabs / Android 18
 tags: [engineering, shipmachine, code, pr]
 

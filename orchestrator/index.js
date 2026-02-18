@@ -17,7 +17,7 @@ import { TaskContext } from '../memory/task-context.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * ShipMachine — the main orchestrator for ZeroClaw.
+ * ShipMachine — the main orchestrator for ShipMachine.
  * Runs: scope → survey → plan → step loop → docs → risk → rollback → PR
  */
 export class ShipMachine {

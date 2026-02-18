@@ -18,7 +18,7 @@ export async function runTask(options) {
     process.exit(1);
   }
 
-  console.log(chalk.bold.cyan('\n🛠️  ZeroClaw ShipMachine\n'));
+  console.log(chalk.bold.cyan('\n🛠️  ShipMachine ShipMachine\n'));
 
   const shipmachine = new ShipMachine({
     repoPath: repo,

@@ -17,8 +17,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const program = new Command();
 
 program
-  .name('zeroclaw')
-  .description('ZeroClaw ShipMachine — engineering shipping agent')
+  .name('shipmachine')
+  .description('ShipMachine ShipMachine — engineering shipping agent')
   .version('0.1.0');
 
 // ---- run-task command ----
@@ -38,7 +38,7 @@ program
   .command('doctor')
   .description('Check system requirements and configuration')
   .action(() => {
-    console.log(chalk.bold.cyan('\n🏥 ZeroClaw Doctor\n'));
+    console.log(chalk.bold.cyan('\n🏥 ShipMachine Doctor\n'));
 
     let issues = 0;
     let warnings = 0;

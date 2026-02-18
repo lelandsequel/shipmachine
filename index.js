@@ -1,5 +1,5 @@
 /**
- * ZeroClaw ShipMachine
+ * ShipMachine ShipMachine
  * An engineering-only shipping agent. Every LLM call is mediated by PromptOS.
  * Pure: Objective → Plan → Code → PR.
  */

@@ -1,11 +1,11 @@
 {
-  "name": "zeroclaw-shipmachine",
+  "name": "shipmachine-shipmachine",
   "version": "0.1.0",
   "description": "Engineering-only shipping agent. Every LLM call mediated by PromptOS. Objective → Plan → Code → PR.",
   "type": "module",
   "main": "index.js",
   "bin": {
-    "zeroclaw": "./cli/index.js"
+    "shipmachine": "./cli/index.js"
   },
   "scripts": {
     "start": "node index.js",

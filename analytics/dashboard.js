@@ -20,7 +20,7 @@ export class AnalyticsDashboard {
     const proposals = this.analyzer.generateProposals();
     const patterns = this.analyzer.findPatterns();
 
-    console.log(chalk.bold.cyan('\n📊 ZeroClaw Analytics Dashboard\n'));
+    console.log(chalk.bold.cyan('\n📊 ShipMachine Analytics Dashboard\n'));
 
     // Overview
     console.log(chalk.bold('📈 Overview'));

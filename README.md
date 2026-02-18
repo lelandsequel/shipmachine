@@ -4,7 +4,7 @@
 
 ## What is ShipMachine?
 
- ShipMachine is an **engineering-only** AI agent designed for one purpose: take an engineering objective and ship it. It's not a personal assistant, not a chat bot — it's a deterministic shipping machine.
+ShipMachine is an **engineering-only** AI agent designed for one purpose: take an engineering objective and ship it. It's not a personal assistant, not a chat bot — it's a deterministic shipping machine.
 
 **Every LLM call is mediated by PromptOS.** There are no raw LLM calls. Every reasoning step maps to a `PromptSpec` ID with strict schema validation on inputs and outputs.
 
@@ -77,7 +77,7 @@ OUTPUT: PR Bundle (patches + tests + docs + PR description)
 
 ```bash
 # Clone or navigate to the project
-cd zeroclaw-shipmachine
+cd shipmachine-shipmachine
 
 # Install dependencies
 npm install
@@ -89,7 +89,7 @@ npm link
 ### Running a Task
 
 ```bash
-zeroclaw run-task \
+shipmachine run-task \
   --repo /path/to/your/repo \
   --objective "Add rate limiting to the /api/users endpoint"
 ```
@@ -97,7 +97,7 @@ zeroclaw run-task \
 ### Dry Run Mode
 
 ```bash
-zeroclaw run-task \
+shipmachine run-task \
   --repo /path/to/repo \
   --objective "Add feature X" \
   --dry-run
@@ -107,23 +107,23 @@ zeroclaw run-task \
 
 ```bash
 # Show last task status
-zeroclaw status
+shipmachine status
 
 # Show analytics summary
-zeroclaw analytics
+shipmachine analytics
 
 # List available prompts
-zeroclaw pack list
+shipmachine pack list
 ```
 
 ## CLI Reference
 
 | Command | Description |
 |---------|-------------|
-| `zeroclaw run-task --repo <path> --objective "..."` | Run a shipping task |
-| `zeroclaw status` | Show last task status |
-| `zeroclaw analytics` | Show analytics summary |
-| `zeroclaw pack list` | List available prompt packs |
+| `shipmachine run-task --repo <path> --objective "..."` | Run a shipping task |
+| `shipmachine status` | Show last task status |
+| `shipmachine analytics` | Show analytics summary |
+| `shipmachine pack list` | List available prompt packs |
 
 ### Options
 

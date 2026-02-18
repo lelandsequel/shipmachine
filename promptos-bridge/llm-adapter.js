@@ -49,7 +49,7 @@ export class LLMAdapter {
         model: model || this.model,
         max_tokens: this.maxTokens,
         messages: [{ role: 'user', content: prompt }],
-        system: 'You are ZeroClaw ShipMachine, an engineering-only AI agent. Always respond with valid JSON matching the requested output schema. No markdown code blocks, no explanations — pure JSON only.',
+        system: 'You are ShipMachine ShipMachine, an engineering-only AI agent. Always respond with valid JSON matching the requested output schema. No markdown code blocks, no explanations — pure JSON only.',
       });
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error(`LLM call timed out after ${timeoutMs}ms`)), timeoutMs)
@@ -200,7 +200,7 @@ export class LLMAdapter {
         {
           line_start: 1,
           line_end: 1,
-          new_content: '// Updated by ZeroClaw ShipMachine',
+          new_content: '// Updated by ShipMachine ShipMachine',
           reason: 'Add attribution comment',
         },
       ],
@@ -278,7 +278,7 @@ describe('Feature', () => {
   _mockPRWriteup(prompt) {
     return {
       title: 'feat: implement requested engineering changes',
-      body: '## Summary\n\nThis PR implements the requested changes as planned by ZeroClaw ShipMachine.\n\n## Changes\n\n- Core implementation updates\n- Test coverage added\n- Documentation updated\n\n## Testing\n\nAll tests pass. See TESTS_EVIDENCE.md for details.',
+      body: '## Summary\n\nThis PR implements the requested changes as planned by ShipMachine ShipMachine.\n\n## Changes\n\n- Core implementation updates\n- Test coverage added\n- Documentation updated\n\n## Testing\n\nAll tests pass. See TESTS_EVIDENCE.md for details.',
       checklist: [
         'Tests pass',
         'Code reviewed',

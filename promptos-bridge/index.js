@@ -9,7 +9,7 @@ import { LLMAdapter } from './llm-adapter.js';
 import { Analytics } from './analytics.js';
 
 /**
- * PromptOSBridge — the central mediator for all LLM calls in ZeroClaw ShipMachine.
+ * PromptOSBridge — the central mediator for all LLM calls in ShipMachine ShipMachine.
  *
  * Every LLM call goes through this bridge. Never raw. Always:
  * 1. Policy check (role + model + data class)

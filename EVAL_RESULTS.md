@@ -1,4 +1,4 @@
-# ZeroClaw Agent Eval Results
+# ShipMachine Agent Eval Results
 
 **Date:** 2026-02-18T14:07:25.887Z
 **Mode:** Live

@@ -2,7 +2,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 
 /**
- * RBAC — Role-Based Access Control for ZeroClaw ShipMachine.
+ * RBAC — Role-Based Access Control for ShipMachine ShipMachine.
  * Manages which agent roles can access which prompts and tools.
  */
 export class RBAC {

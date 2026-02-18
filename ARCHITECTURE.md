@@ -1,4 +1,4 @@
-# ZeroClaw ShipMachine — Architecture
+# ShipMachine ShipMachine — Architecture
 
 > A pure engineering shipping machine. Every agent action is mediated by PromptOS.
 > No life assistant. No free prompting. Just: Objective → Plan → Code → PR.

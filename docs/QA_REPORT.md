@@ -1,7 +1,7 @@
 # QA Report — ShipMachine v0.1
 
 **Date:** 2026-02-18  
-**QA Agent:** ZeroClaw QA Subagent  
+**QA Agent:** ShipMachine QA Subagent  
 **Scope:** Full system — CLI, Policy, RBAC, PromptOS Bridge, Tool Adapters, Analytics, Prompt Packs, PR Bundles, Docs  
 **Test Harness:** Custom inline test runner (`qa-tests.mjs`)
 

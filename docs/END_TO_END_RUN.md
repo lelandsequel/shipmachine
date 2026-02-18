@@ -1,4 +1,4 @@
-# ZeroClaw ShipMachine — End-to-End Run Transcript
+# ShipMachine ShipMachine — End-to-End Run Transcript
 
 **Date:** 2026-02-18  
 **Version:** v0.1  
@@ -40,7 +40,7 @@ console.log(`\nAll ${pass} passed`);
 ## Full Run Transcript
 
 ```
-🛠️  ZeroClaw ShipMachine
+🛠️  ShipMachine ShipMachine
 
 🚀 ShipMachine initialized
   Role: engineer

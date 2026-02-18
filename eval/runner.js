@@ -122,7 +122,7 @@ async function main() {
     }
   }
 
-  console.log(chalk.bold.cyan('🧪 ZeroClaw ShipMachine Evaluation Suite\n'));
+  console.log(chalk.bold.cyan('🧪 ShipMachine ShipMachine Evaluation Suite\n'));
 
   // Dry-run: just list fixtures, skip execution
   if (isDryRun) {
@@ -190,7 +190,7 @@ async function main() {
  * Generate markdown report.
  */
 function generateReport(results) {
-  let md = '# ZeroClaw ShipMachine Evaluation Results\n\n';
+  let md = '# ShipMachine ShipMachine Evaluation Results\n\n';
   md += `Generated: ${new Date().toISOString()}\n\n`;
   md += '## Summary\n\n';
   md += `- Total fixtures: ${results.length}\n`;

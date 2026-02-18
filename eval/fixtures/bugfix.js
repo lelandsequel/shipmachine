@@ -14,7 +14,7 @@ import os from 'os';
  * @returns {string} path to temp directory
  */
 export function createFixture() {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zeroclaw-eval-bugfix-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'shipmachine-eval-bugfix-'));
   
   // Create package.json
   fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({
