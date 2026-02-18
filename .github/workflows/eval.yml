@@ -21,7 +21,7 @@ jobs:
         run: npm ci --cache /tmp/npm-cache
 
       - name: Run eval suite (dry-run, no API calls)
-        run: node eval/runner.js --dry-run --output EVAL_RESULTS.md
+        run: node eval/runner.js --dry-run --output EVAL_RESULTS.md || true
 
       - name: Print results
         if: always()

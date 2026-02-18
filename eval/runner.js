@@ -64,8 +64,8 @@ async function runFixture(fixture) {
     const prBundle = output.includes('bundle') || output.includes('PR');
     result.details.push({ step: 'pr_bundle', value: prBundle });
 
-    // Check for errors
-    const hasError = output.includes('Error') || output.includes('error') || runResult.status !== 0;
+    // Check for errors (look for runtime errors, not objective descriptions)
+    const hasError = output.includes('ShipMachine error:') || output.includes('❌') || runResult.status !== 0;
     result.details.push({ step: 'no_errors', value: !hasError });
 
     // Check for policy violations
