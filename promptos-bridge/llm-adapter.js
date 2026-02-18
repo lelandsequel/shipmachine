@@ -43,17 +43,18 @@ export class LLMAdapter {
     }
 
     try {
-      const response = await client.messages.create({
+      // Race against 45s timeout to avoid SIGKILL
+      const timeoutMs = 45000;
+      const callPromise = client.messages.create({
         model: model || this.model,
         max_tokens: this.maxTokens,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+        messages: [{ role: 'user', content: prompt }],
         system: 'You are ZeroClaw ShipMachine, an engineering-only AI agent. Always respond with valid JSON matching the requested output schema. No markdown code blocks, no explanations — pure JSON only.',
       });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`LLM call timed out after ${timeoutMs}ms`)), timeoutMs)
+      );
+      const response = await Promise.race([callPromise, timeoutPromise]);
 
       const rawContent = response.content[0]?.text || '{}';
       const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);

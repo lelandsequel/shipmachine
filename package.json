@@ -18,7 +18,7 @@
     "chalk": "^5.3.0",
     "commander": "^12.0.0",
     "js-yaml": "^4.1.0",
-    "uuid": "^9.0.0",
+    "uuid": "^9.0.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -27,7 +27,13 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["engineering", "shipmachine", "promptos", "agent", "pr"],
+  "keywords": [
+    "engineering",
+    "shipmachine",
+    "promptos",
+    "agent",
+    "pr"
+  ],
   "author": "JourdanLabs / Android 18",
   "license": "MIT"
 }

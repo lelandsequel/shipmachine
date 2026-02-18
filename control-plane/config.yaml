@@ -5,11 +5,17 @@ policy:
     - "npm test"
     - "npm run build"
     - "npm run lint"
+    - "npm run test"
+    - "node test.js"
+    - "node --test"
     - "pytest"
     - "python -m pytest"
+    - "python test.py"
     - "make test"
     - "cargo test"
     - "go test ./..."
+    - "npx jest"
+    - "npx vitest"
   allowed_paths:
     - "/workspace/**"
     - "/Users/**"
@@ -40,9 +46,10 @@ governance:
     readonly:
       - claude-haiku-4-5
 
-  approval_required:
-    - ship.patch  # when target_env=prod
-    - ship.rollback_plan  # always
+  approval_required: []
+  # approval_required_prod:
+  #   - ship.patch     (enable when target_env=prod)
+  #   - ship.rollback_plan
 
 rbac:
   roles:

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import yaml from 'js-yaml';
 import { v4 as uuidv4 } from 'uuid';
 import { PolicyEngine } from '../control-plane/policy.js';
@@ -34,7 +35,7 @@ export class PromptOSBridge {
     this.config = config;
 
     // Control plane
-    const configPath = config.configPath || path.join(process.cwd(), 'control-plane/config.yaml');
+    const configPath = config.configPath || path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'control-plane', 'config.yaml');
     this.policy = new PolicyEngine(configPath);
     this.rbac = new RBAC();
     this.rbac.loadRoles(configPath);
@@ -158,19 +159,25 @@ export class PromptOSBridge {
    *   - context: { target_env, ... }
    * @returns {Promise<{promptId, output, tokensUsed, durationMs, policyChecked: true}>}
    */
-  async execute(options) {
-    const {
-      promptId,
-      inputs = {},
-      user = null,
-      role = 'engineer',
-      model = null,
-      channel = 'cli',
-      context = {}
-    } = options;
+  async execute(optionsOrPromptId, inputsArg = {}, contextArg = {}) {
+    // Support both calling conventions:
+    // execute({promptId, inputs, role, ...})  (new style)
+    // execute(promptId, inputs, {role, ...})  (orchestrator style)
+    let promptId, inputs, user, role, model, channel, context;
+    if (typeof optionsOrPromptId === 'string') {
+      promptId = optionsOrPromptId;
+      inputs = inputsArg || {};
+      role = contextArg?.role || 'engineer';
+      user = contextArg?.user || null;
+      model = contextArg?.model || null;
+      channel = contextArg?.channel || 'cli';
+      context = contextArg?.context || {};
+    } else {
+      ({ promptId, inputs = {}, user = null, role = 'engineer', model = null, channel = 'cli', context = {} } = optionsOrPromptId);
+    }
 
     const startTime = Date.now();
-    const effectiveModel = model || this.config.model || 'claude-3-5-sonnet';
+    const effectiveModel = model || this.config.model || 'claude-sonnet-4-6';
 
     // Step 1: Policy check (including model allowlist)
     if (!this.policy.checkPromptAllowed(role, promptId)) {

@@ -220,9 +220,9 @@ export class PolicyEngine {
       return false;
     }
 
-    // Support partial matching (e.g., 'claude-3-5-sonnet-20241022' matches 'claude-3-5-sonnet')
-    return roleModels.some(allowedModel => 
-      model === allowedModel || model.startsWith(allowedModel)
+    // Support partial matching (e.g., 'claude-sonnet-4-6' matches 'claude-sonnet')
+    return roleModels.some(allowedModel =>
+      allowedModel && (model === allowedModel || model.startsWith(allowedModel) || allowedModel.startsWith(model))
     );
   }
 

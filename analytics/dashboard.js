@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import { Analytics } from '../../promptos-bridge/analytics.js';
-import { LearningLoopAnalyzer } from '../../promptos/learn/analyzer.js';
+import { Analytics } from '../promptos-bridge/analytics.js';
+import { LearningLoopAnalyzer } from '../promptos/learn/analyzer.js';
 
 /**
  * AnalyticsDashboard — CLI dashboard for viewing analytics and learning insights.

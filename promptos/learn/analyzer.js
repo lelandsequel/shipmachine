@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Analytics } from '../promptos-bridge/analytics.js';
+import { Analytics } from '../../promptos-bridge/analytics.js';
 
 /**
  * LearningLoopAnalyzer — analyzes prompt executions to identify failure patterns
